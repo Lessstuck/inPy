@@ -8,33 +8,39 @@ if (len(sys.argv) <= 2) or (len(sys.argv) > 3):
 dbFileName = sys.argv[1]
 dnaFileName = sys.argv[2]
 
-# open csv file into dictionary
-# from https://docs.python.org/3/library/csv.html
-with open(dbFileName, newline='') as db:
-    reader = csv.DictReader(db)
-    # from Tyler at https://stackoverflow.com/questions/24962908/how-can-i-read-only-the-header-column-of-a-csv-file-using-python
-    fieldNames = reader.fieldnames
-    fieldNames.remove('name')
-    print(fieldNames)
+dbDictReader = csv.DictReader(open(dbFileName, newline=''))
+STRlist = dbDictReader.fieldnames
+# STRlist = fieldNames
+STRlist.remove('name')
+print(STRlist)
+
+#  convert reader to dict
+d = {}
+for k in dbDictReader:
+    # d[k] = v
+    print(f"{k.get('AGATC')}")
+
 
 # open DNA sequence file
 with open(dnaFileName, "r") as sequence:
     seq = sequence.read()
+lenSEQ = len(seq)
 
 # parse sequence
 repeatsMax = []
-for i in range(0, (len(fieldNames))):
+for i in range(0, (len(STRlist))):
     repeatsMax.append(0)
     repeats = 0
-    STR = fieldNames[i]
+    STR = STRlist[i]
     lenSTR = len(STR)
-    for j in range(0, (len(seq) - lenSTR)):  # counts repeats, not contiguous repeats
-        if STR == seq[j:(j + lenSTR)]:
+    j = 0
+    while j + lenSTR < lenSEQ:
+        while seq[j:(j + lenSTR)] == STR:
             repeats += 1
+            j += lenSTR
         repeatsMax[i] = max(repeatsMax[i], repeats)
-
-print(repeatsMax)
-
-# TODO compare repeatsMax with each person's STR pattern
+        j += 1
+print(f"repeatsMax: {repeatsMax}")
+#  match STR lists
 
 exit(0)

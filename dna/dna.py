@@ -8,20 +8,11 @@ if (len(sys.argv) <= 2) or (len(sys.argv) > 3):
 dbFileName = sys.argv[1]
 dnaFileName = sys.argv[2]
 
+# load database into dictionary
 dbDictReader = csv.DictReader(open(dbFileName, newline=''))
 STRlist = dbDictReader.fieldnames
-# STRlist = fieldNames
-STRlist.remove('name')
-print(STRlist)
 
-#  convert reader to dict
-d = {}
-for k in dbDictReader:
-    # d[k] = v
-    print(f"{k.get('AGATC')}")
-
-
-# open DNA sequence file
+# load DNA sequence file
 with open(dnaFileName, "r") as sequence:
     seq = sequence.read()
 lenSEQ = len(seq)
@@ -40,7 +31,16 @@ for i in range(0, (len(STRlist))):
             j += lenSTR
         repeatsMax[i] = max(repeatsMax[i], repeats)
         j += 1
-print(f"repeatsMax: {repeatsMax}")
-#  match STR lists
+del repeatsMax[0]  # remove name element
 
+#  match STR lists
+for row in dbDictReader:
+    dbRecords = []
+    for k in range(1, (len(STRlist))):  # starts at 1 to skip name field
+        dbRecords.append(int(row[STRlist[k]]))
+    # print(f"{dbRecords} {repeatsMax}")
+    if dbRecords == repeatsMax:
+        print(f"{row[STRlist[0]]}")
+        exit(0)
+print("No match")
 exit(0)

@@ -19,7 +19,7 @@ lenSEQ = len(seq)
 
 # parse sequence
 repeatsMax = []
-for i in range(0, (len(STRlist))):
+for i in range(0, (len(STRlist))):  # for each STR to be matched
     repeatsMax.append(0)
     repeats = 0
     STR = STRlist[i]
@@ -30,6 +30,7 @@ for i in range(0, (len(STRlist))):
             repeats += 1
             j += lenSTR
         repeatsMax[i] = max(repeatsMax[i], repeats)
+        repeats = 0
         j += 1
 del repeatsMax[0]  # remove name element
 
@@ -38,7 +39,6 @@ for row in dbDictReader:
     dbRecords = []
     for k in range(1, (len(STRlist))):  # starts at 1 to skip name field
         dbRecords.append(int(row[STRlist[k]]))
-    # print(f"{dbRecords} {repeatsMax}")
     if dbRecords == repeatsMax:
         print(f"{row[STRlist[0]]}")
         exit(0)

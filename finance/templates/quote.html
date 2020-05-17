@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Get a Quote!
+{% endblock %}
+
+{% block main %}
+    <p>Type a stock's symbol to see a real-time quote.</p>
+    <form action="/quote" method="post">
+        <div class="form-group">
+            <input autocomplete="off" autofocus class="form-control" name="stock" placeholder="StockSymbol" type="text">
+
+        <button class="btn btn-primary" type="submit">Get Quote</button>
+    </form>
+{% endblock %}

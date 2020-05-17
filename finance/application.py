@@ -9,8 +9,6 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required, lookup, usd
 
-# from iexfinance.refdata import get_symbols, Stock
-
 # Configure application
 app = Flask(__name__)
 
@@ -25,8 +23,6 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
-# Custom filter
-# app.jinja_env.filters["usd"] = usd  """ use case is: {{ price | usd }} """
 
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_FILE_DIR"] = mkdtemp()
@@ -46,8 +42,11 @@ if not os.environ.get("API_KEY"):
 @login_required
 def index():
     """Show portfolio of stocks"""
-    portfolio = db.execute("SELECT * FROM accounts JOIN users WHERE accounts.user_id == users.id" )
-    return render_template("index.html")
+    # username = session["username"]
+    cashDict = db.execute("SELECT cash FROM users WHERE id = :id", id=session["user_id"])
+    cash = cashDict[0].get("cash")
+    return render_template("index.html", cash=usd(cash))
+
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -56,16 +55,24 @@ def buy():
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
         # Ensure stock symbol was submitted
-        if not request.form.get("symbol"):
+        if not request.form.get("stock"):
+            return apology("must provide valid stock symbol", 403)
+        elif not lookup(request.form.get("stock")):
             return apology("must provide valid stock symbol", 403)
         else:
-            stock = request.form.get("symbol")
+            stock = request.form.get("stock")
 
         # Ensure valid number of shares was submitted
         if not request.form.get("shares"):
             return apology("must provide number of shares", 403)
         else:
-            shares = request.form.get("shares")
+            shares = float(request.form.get("shares"))
+
+        quote = lookup(stock)
+        name = quote["name"]
+        price = quote["price"]
+        total = shares * price
+        return render_template("quoted.html", name=name, price=total, symbol=stock)
     else:
         return render_template("buy.html")
 

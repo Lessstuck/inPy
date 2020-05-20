@@ -69,24 +69,26 @@ def buy():
             shares = float(request.form.get("shares"))
 
         quote = lookup(stock)
-        name = quote["name"]
+        # name = quote["name"]
         price = quote["price"]
-        total = shares * price
-        return render_template("quoted.html", name=name, price=total, symbol=stock)
+        total = float(shares) * price
+
+        userDict = db.execute("SELECT username FROM users WHERE id = :id", id=session["user_id"])
+        username = userDict[0].get("username")
+        db.execute("INSERT INTO history (username, symbol, price, shares, total) VALUES (:username, :symbol, :price, :shares, :total)", username=username, symbol=stock, price=price, shares=shares, total=total)
+        return render_template("history.html")
     else:
         return render_template("buy.html")
 
 @app.route("/history")
 @login_required
 def history():
-    """Show history of transactions"""
-    return apology("TODO")
-
+    transactions = db.execute("SELECT * FROM history WHERE id = :id", id=session["user_id"])
+    return render_template("history.html", transactions=transactions)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
-
     # Forget any user_id
     session.clear()
 
@@ -111,8 +113,10 @@ def login():
 
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
+        # username = rows[0][username]
 
         # Redirect user to home page
+        # return render_template
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
@@ -168,7 +172,10 @@ def register():
         # Ensure passwords match
         elif request.form.get("password") != request.form.get("confirmation"):
             return apology("passwords must match", 403)
+        # add user to users table
         db.execute("INSERT INTO users (username, hash) VALUES (:username, :hash) ", username=request.form.get("username"), hash=generate_password_hash(request.form.get("password")))
+        # add initial cash to history table
+        db.execute("INSERT INTO history (username, symbol, total) VALUES (:username, :symbol, :total) ", username=request.form.get("username"), symbol='CASH', total=10000)
         # Redirect user to home page
         return redirect("/")
     else:

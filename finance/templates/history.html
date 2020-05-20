@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Transactions
+{% endblock %}
+
+{% block main %}
+    <main class="container p-5">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <!--<th>Name</th>-->
+                    <th>Shares</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Cash</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>
+                        {{ cash }}
+                    </td>
+                </tr>
+                <tr>
+                    {% for i in transactions: %}
+                        <td>{{ transactions[i].get("symbol") }}</td>
+                        <!--<td>{{ transactions.get("name") }}</td>-->
+                        <!--<td>{{ transactions[i].get("shares") }}</td>-->
+                        <!--<td>{{ transactions[i].get("price") }}</td>-->
+                        <!--<td>{{ transactions[i].get("total") }}</td>-->
+                        <!--<td>{{ transactions[i].get("date") }}</td>-->
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </main>
+    <div>{{ user }}</div>
+{% endblock %}

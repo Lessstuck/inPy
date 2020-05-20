@@ -18,25 +18,15 @@
                 </tr>
             </thead>
             <tbody>
+                {% for i in range(0, transactionCount): %}
                 <tr>
-                    <td>Cash</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>
-                        {{ cash }}
-                    </td>
+                    <td>{{ transactions[i]['symbol'] }}</td>
+                    <td>{{ transactions[i]['shares'] }}</td>
+                    <td>{{ transactions[i]['price'] }}</td>
+                    <td>{{ transactions[i]['total'] }}</td>
+                    <td>{{ transactions[i]['date'] }}</td>
                 </tr>
-                <tr>
-                    {% for i in transactions: %}
-                        <td>{{ transactions[i].get("symbol") }}</td>
-                        <!--<td>{{ transactions.get("name") }}</td>-->
-                        <!--<td>{{ transactions[i].get("shares") }}</td>-->
-                        <!--<td>{{ transactions[i].get("price") }}</td>-->
-                        <!--<td>{{ transactions[i].get("total") }}</td>-->
-                        <!--<td>{{ transactions[i].get("date") }}</td>-->
-                    {% endfor %}
-                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </main>

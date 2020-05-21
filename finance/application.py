@@ -42,11 +42,11 @@ if not os.environ.get("API_KEY"):
 @login_required
 def index():
     """Show portfolio of stocks"""
-    # username = session["username"]
-    cashDict = db.execute("SELECT cash FROM users WHERE id = :id", id=session["user_id"])
-    cash = cashDict[0].get("cash")
-    return render_template("index.html", cash=usd(cash))
-
+    userDict = db.execute("SELECT username FROM users WHERE id = :id", id=session["user_id"])
+    username = userDict[0].get("username")
+    balancesDict = db.execute("SELECT * FROM balances WHERE username = :username", username=username)
+    balancesCount = len(balancesDict)
+    return render_template("/index.html", balancesDict=balancesDict, balancesCount=balancesCount)
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -75,7 +75,17 @@ def buy():
 
         userDict = db.execute("SELECT username FROM users WHERE id = :id", id=session["user_id"])
         username = userDict[0].get("username")
-        db.execute("INSERT INTO history (username, symbol, price, shares, total) VALUES (:username, :symbol, :price, :shares, :total)", username=username, symbol=stock, price=usd(price), shares=shares, total=usd(total))
+
+        # check cash balance
+        cashDict = db.execute("SELECT * FROM balances WHERE username = :username AND symbol = 'CASH' ", username=username)
+        availableCash = float(cashDict[0].get('total'))
+        if total > availableCash:
+             return apology("you don't have enough cash", 403)
+        else:
+            availableCash = availableCash - total
+            db.execute("UPDATE balances SET total = :availableCash", availableCash=availableCash)
+            db.execute("INSERT INTO balances (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol=stock, total=total)
+            db.execute("INSERT INTO history (username, symbol, price, shares, total) VALUES (:username, :symbol, :price, :shares, :total)", username=username, symbol=stock, price=price, shares=shares, total=total)
         return redirect("/history")
     else:
         return render_template("buy.html")
@@ -107,22 +117,19 @@ def login():
             return apology("must provide password", 403)
 
         # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = :username",
-                          username=request.form.get("username"))
+        rows = db.execute("SELECT * FROM users WHERE username = :username", username=request.form.get("username"))
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
             return apology("invalid username and/or password", 403)
-
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
         # username = rows[0][username]
 
-        # Redirect user to home page
-        # return render_template
-        return redirect("/")
-
-    # User reached route via GET (as by clicking a link or via redirect)
+        # Redirect user to home page with balances
+        balancesDict = db.execute("SELECT * FROM balances WHERE username = :username", username=request.form.get("username"))
+        balancesCount = len(balancesDict)
+        return render_template("/index.html", balancesDict=balancesDict, balancesCount=balancesCount)
     else:
         return render_template("login.html")
 
@@ -176,11 +183,12 @@ def register():
         elif request.form.get("password") != request.form.get("confirmation"):
             return apology("passwords must match", 403)
         # add user to users table
-        db.execute("INSERT INTO users (username, hash) VALUES (:username, :hash) ", username=request.form.get("username"), hash=generate_password_hash(request.form.get("password")))
-        # add initial cash to history table
-        db.execute("INSERT INTO history (username, symbol, total) VALUES (:username, :symbol, :total) ", username=request.form.get("username"), symbol='CASH', total=usd(10000))
-        # Redirect user to home page
-        return redirect("/")
+        username=request.form.get("username")
+        db.execute("INSERT INTO users (username, hash) VALUES (:username, :hash) ", username=username, hash=generate_password_hash(request.form.get("password")))
+        # add initial cash to history and balances tables
+        db.execute("INSERT INTO history (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol='CASH', total=10000)
+        db.execute("INSERT INTO balances (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol='CASH', total=10000)
+        return redirect("/login")
     else:
         return render_template("register.html")
 

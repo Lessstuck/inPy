@@ -1,16 +1,17 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Dashboard
+    Balances
 {% endblock %}
 
 {% block main %}
     <main class="container p-5">
+        <h3>Your Account Balances</h3>
         <table class="table">
             <thead>
                 <tr>
                     <th>Symbol</th>
-                    <th>Name</th>
+                    <!--<th>Name</th>-->
                     <th>Shares</th>
                     <th>Price</th>
                     <th>Total</th>
@@ -18,13 +19,14 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>Cash</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>
-                        {{ cash }}
-                    </td>
+                {% for i in range(0, balancesCount): %}
+                <tr>
+                    <td>{{ balancesDict[i]['symbol'] }}</td>
+                    <td>{{ balancesDict[i]['shares'] }}</td>
+                    <td>{{ balancesDict[i]['price'] }}</td>
+                    <td>{{ balancesDict[i]['total'] }}</td>
+                </tr>
+                {% endfor %}
                 </tr>
             </tbody>
         </table>

@@ -46,6 +46,14 @@ def index():
     username = userDict[0].get("username")
     balancesDict = db.execute("SELECT * FROM balances WHERE username = :username", username=username)
     balancesCount = len(balancesDict)
+    # update stock quotes for balances display
+    for i in range(0, balancesCount):
+        shares = balancesDict[i].get("shares")
+        symbol = balancesDict[i].get("symbol")
+        quote = lookup(symbol)
+        price = quote["price"]
+        total = shares * price
+        db.execute("UPDATE balances SET total = :total WHERE symbol = :symbol", total=usd(total), symbol=symbol)
     return render_template("/index.html", balancesDict=balancesDict, balancesCount=balancesCount)
 
 
@@ -66,7 +74,7 @@ def buy():
         if not request.form.get("shares"):
             return apology("must provide number of shares", 403)
         else:
-            shares = float(request.form.get("shares"))
+            shares = int(request.form.get("shares"))
 
         quote = lookup(stock)
         # name = quote["name"]
@@ -77,15 +85,21 @@ def buy():
         username = userDict[0].get("username")
 
         # check cash balance
-        cashDict = db.execute("SELECT * FROM balances WHERE username = :username AND symbol = 'CASH' ", username=username)
-        availableCash = float(cashDict[0].get('total'))
+        cashDict = db.execute("SELECT cash FROM users WHERE username = :username", username=username)
+        availableCash = float(cashDict[0].get('cash'))
         if total > availableCash:
              return apology("you don't have enough cash", 403)
         else:
             availableCash = availableCash - total
-            db.execute("UPDATE balances SET total = :availableCash", availableCash=availableCash)
-            db.execute("INSERT INTO balances (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol=stock, total=total)
-            db.execute("INSERT INTO history (username, symbol, price, shares, total) VALUES (:username, :symbol, :price, :shares, :total)", username=username, symbol=stock, price=price, shares=shares, total=total)
+            db.execute("INSERT INTO history (username, symbol, price, shares, total) VALUES (:username, :symbol, :price, :shares, :total)", username=username, symbol=stock, price=usd(price), shares=shares, total=usd(total))
+            db.execute("UPDATE users SET cash = :availableCash", availableCash=availableCash)
+            stockDict = db.execute("SELECT * FROM balances WHERE username = :username AND symbol = :stock", username=username, stock=stock)
+            if len(stockDict) != 0:
+                existingShares = int(stockDict[0].get('shares'))
+                shares = shares + existingShares
+                db.execute("UPDATE balances SET shares = :shares WHERE username = :username AND symbol = :stock", username=username, stock=stock, shares=shares)
+            else:
+                db.execute("INSERT INTO balances (username, symbol, shares) VALUES (:username, :symbol, :shares) ", username=username, symbol=stock, shares=shares)
         return redirect("/history")
     else:
         return render_template("buy.html")
@@ -124,7 +138,6 @@ def login():
             return apology("invalid username and/or password", 403)
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
-        # username = rows[0][username]
 
         # Redirect user to home page with balances
         balancesDict = db.execute("SELECT * FROM balances WHERE username = :username", username=request.form.get("username"))
@@ -186,8 +199,8 @@ def register():
         username=request.form.get("username")
         db.execute("INSERT INTO users (username, hash) VALUES (:username, :hash) ", username=username, hash=generate_password_hash(request.form.get("password")))
         # add initial cash to history and balances tables
-        db.execute("INSERT INTO history (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol='CASH', total=10000)
-        db.execute("INSERT INTO balances (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol='CASH', total=10000)
+        # db.execute("INSERT INTO history (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol='CASH', total=10000)
+        # db.execute("INSERT INTO balances (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol='CASH', total=10000)
         return redirect("/login")
     else:
         return render_template("register.html")

@@ -54,7 +54,10 @@ def index():
         price = quote["price"]
         total = shares * price
         db.execute("UPDATE balances SET total = :total WHERE symbol = :symbol", total=usd(total), symbol=symbol)
-    return render_template("/index.html", balancesDict=balancesDict, balancesCount=balancesCount)
+    # get cash balance
+    cashDict = db.execute("SELECT cash FROM users WHERE username = :username", username=username)
+    availableCash = float(cashDict[0].get('cash'))
+    return render_template("/index.html", balancesDict=balancesDict, balancesCount=balancesCount, availableCash=usd(availableCash))
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -97,10 +100,12 @@ def buy():
             if len(stockDict) != 0:
                 existingShares = int(stockDict[0].get('shares'))
                 shares = shares + existingShares
-                db.execute("UPDATE balances SET shares = :shares WHERE username = :username AND symbol = :stock", username=username, stock=stock, shares=shares)
+                total = float(shares) * price
+                db.execute("UPDATE balances SET shares = :shares, total = :total WHERE username = :username AND symbol = :stock", username=username, stock=stock, shares=shares, total=usd(total))
             else:
-                db.execute("INSERT INTO balances (username, symbol, shares) VALUES (:username, :symbol, :shares) ", username=username, symbol=stock, shares=shares)
-        return redirect("/history")
+                total = float(shares) * price
+                db.execute("INSERT INTO balances (username, symbol, shares, total) VALUES (:username, :symbol, :shares, :total) ", username=username, symbol=stock, shares=shares, total=usd(total))
+        return redirect("/")
     else:
         return render_template("buy.html")
 
@@ -130,8 +135,9 @@ def login():
         elif not request.form.get("password"):
             return apology("must provide password", 403)
 
+        username=request.form.get("username")
         # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = :username", username=request.form.get("username"))
+        rows = db.execute("SELECT * FROM users WHERE username = :username", username=username)
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
@@ -139,10 +145,13 @@ def login():
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
 
+        # check cash balance
+        cashDict = db.execute("SELECT * FROM users WHERE username = :username", username=username)
+        availableCash = float(cashDict[0].get('cash'))
         # Redirect user to home page with balances
-        balancesDict = db.execute("SELECT * FROM balances WHERE username = :username", username=request.form.get("username"))
+        balancesDict = db.execute("SELECT * FROM balances WHERE username = :username", username=username)
         balancesCount = len(balancesDict)
-        return render_template("/index.html", balancesDict=balancesDict, balancesCount=balancesCount)
+        return render_template("/index.html", balancesDict=balancesDict, balancesCount=balancesCount, availableCash=usd(availableCash))
     else:
         return render_template("login.html")
 
@@ -199,7 +208,7 @@ def register():
         username=request.form.get("username")
         db.execute("INSERT INTO users (username, hash) VALUES (:username, :hash) ", username=username, hash=generate_password_hash(request.form.get("password")))
         # add initial cash to history and balances tables
-        # db.execute("INSERT INTO history (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol='CASH', total=10000)
+        db.execute("INSERT INTO history (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol='CASH', total=10000)
         # db.execute("INSERT INTO balances (username, symbol, total) VALUES (:username, :symbol, :total) ", username=username, symbol='CASH', total=10000)
         return redirect("/login")
     else:

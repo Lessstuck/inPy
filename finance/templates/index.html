@@ -17,7 +17,6 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
                 {% for i in range(0, balancesCount): %}
                 <tr>
                     <td>{{ balancesDict[i]['symbol'] }}</td>
@@ -25,6 +24,10 @@
                     <td>{{ balancesDict[i]['total'] }}</td>
                 </tr>
                 {% endfor %}
+                <tr>
+                    <td>CASH</td>
+                    <td></td>
+                    <td>{{ availableCash }}</td>
                 </tr>
             </tbody>
         </table>

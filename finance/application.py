@@ -222,8 +222,57 @@ def register():
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
-    """Sell shares of stock"""
-    return apology("TODO")
+# User reached route via POST (as by submitting a form via POST)
+    if request.method == "POST":
+        # Ensure stock symbol was submitted
+        if not request.form.get("stock"):
+            return apology("must provide valid stock symbol", 403)
+        elif not lookup(request.form.get("stock")):
+            return apology("must provide valid stock symbol", 403)
+        else:
+            stock = request.form.get("stock")
+
+        # Ensure valid number of shares was submitted
+        if not request.form.get("shares"):
+            return apology("must provide number of shares", 403)
+        else:
+            shares = int(request.form.get("shares"))
+
+        quote = lookup(stock)
+        # name = quote["name"]
+        price = quote["price"]
+
+
+        userDict = db.execute("SELECT username FROM users WHERE id = :id", id=session["user_id"])
+        username = userDict[0].get("username")
+
+        # check to see whether there is a holding in that stock & then check shares balance
+        sharesDict = db.execute("SELECT * FROM balances WHERE username = :username AND symbol = :stock", username=username, stock=stock)
+        if len(sharesDict) == 0:
+            return apology("no stock in that company", 403)
+        else:
+            availableShares = float(sharesDict[0].get('shares'))
+            if shares > availableShares:
+                return apology("you don't have enough shares", 403)
+            else:
+                # deduct shares
+                availableShares = availableShares - shares
+                total = float(shares) * price
+                db.execute("INSERT INTO history (username, symbol, price, shares, total) VALUES (:username, :symbol, :price, :shares, :total)", username=username, symbol=stock, price=usd(price), shares=shares, total=usd(total))
+                # add cash
+                cashDict = db.execute("SELECT cash FROM users WHERE username = :username", username=username)
+                availableCash = float(cashDict[0].get('cash'))
+                availableCash = availableCash + total
+                db.execute("UPDATE users SET cash = :availableCash", availableCash=availableCash)
+                # update balances
+                stockDict = db.execute("SELECT * FROM balances WHERE username = :username AND symbol = :stock", username=username, stock=stock)
+                existingShares = int(stockDict[0].get('shares'))
+                shares = existingShares - shares
+                total = float(shares) * price
+                db.execute("UPDATE balances SET shares = :shares, total = :total WHERE username = :username AND symbol = :stock", username=username, stock=stock, shares=shares, total=usd(total))
+                return redirect("/")
+    else:
+        return render_template("sell.html")
 
 
 def errorhandler(e):

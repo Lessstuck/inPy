@@ -47,17 +47,21 @@ def index():
     balancesDict = db.execute("SELECT * FROM balances WHERE username = :username", username=username)
     balancesCount = len(balancesDict)
     # update stock quotes for balances display
+    grandTotal = 0
     for i in range(0, balancesCount):
         shares = balancesDict[i].get("shares")
         symbol = balancesDict[i].get("symbol")
         quote = lookup(symbol)
         price = quote["price"]
         total = shares * price
+        grandTotal = grandTotal + total
         db.execute("UPDATE balances SET total = :total WHERE symbol = :symbol", total=usd(total), symbol=symbol)
+    balancesDict = db.execute("SELECT * FROM balances WHERE username = :username", username=username)
     # get cash balance
     cashDict = db.execute("SELECT cash FROM users WHERE username = :username", username=username)
     availableCash = float(cashDict[0].get('cash'))
-    return render_template("/index.html", balancesDict=balancesDict, balancesCount=balancesCount, availableCash=usd(availableCash))
+    grandTotal = grandTotal + availableCash
+    return render_template("/index.html", balancesDict=balancesDict, balancesCount=balancesCount, availableCash=usd(availableCash), grandTotal=usd(grandTotal))
 
 
 @app.route("/buy", methods=["GET", "POST"])
